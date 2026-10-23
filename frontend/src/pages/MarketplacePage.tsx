@@ -11,7 +11,7 @@ import {
   Mail,
   CheckCircle,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, getFileUrl } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Modal } from '../components/common/Modal';
 import { MarketplaceListing } from '../types';
@@ -250,7 +250,7 @@ export const MarketplacePage: React.FC = () => {
                 <div>
                   {item.image ? (
                     <img
-                      src={item.image}
+                      src={getFileUrl(item.image)}
                       alt={item.title}
                       className="w-full h-44 object-cover border-b border-slate-100"
                     />

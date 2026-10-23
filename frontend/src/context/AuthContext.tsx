@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
-import { api } from '../api/client';
+import { api, setAuthToken } from '../api/client';
 
 interface AuthContextType {
   user: User | null;
@@ -40,6 +40,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
     if (res.success && res.data?.user) {
+      if (res.data.token) {
+        setAuthToken(res.data.token);
+      }
       setUser(res.data.user);
       return { success: true };
     }
@@ -49,6 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: any) => {
     const res = await api.post('/auth/register', data);
     if (res.success && res.data?.user) {
+      if (res.data.token) {
+        setAuthToken(res.data.token);
+      }
       setUser(res.data.user);
       return { success: true };
     }
@@ -56,8 +62,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
-    setUser(null);
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // ignore
+    } finally {
+      setAuthToken(null);
+      setUser(null);
+    }
   };
 
   const refreshUser = async () => {

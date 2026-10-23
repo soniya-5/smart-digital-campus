@@ -11,12 +11,47 @@ export interface ApiResponse<T = any> {
   };
 }
 
+const TOKEN_KEY = 'campus_auth_token';
+
+export const setAuthToken = (token?: string | null) => {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+};
+
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+export const getFileUrl = (path?: string | null): string => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (!envUrl) return path;
+  const origin = envUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+  return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
 class ApiClient {
-  private baseUrl = '/api';
+  private getBaseUrl(): string {
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (!envUrl) return '/api';
+    const trimmed = envUrl.replace(/\/+$/, '');
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
 
   async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const baseUrl = this.getBaseUrl();
+    const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const headers = new Headers(options.headers || {});
+
+    // Attach Bearer token fallback if present (critical for cross-site third-party cookie restrictions)
+    const token = getAuthToken();
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
 
     // Don't set Content-Type for FormData (browser sets boundary automatically)
     if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {

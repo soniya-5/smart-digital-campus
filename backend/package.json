@@ -5,12 +5,13 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts",
+    "seed:timetable": "tsx prisma/seed-timetable.ts",
     "create-admin": "tsx prisma/create-admin.ts",
     "test": "vitest run"
   },

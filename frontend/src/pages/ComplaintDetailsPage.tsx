@@ -16,7 +16,7 @@ import {
   Building,
   CheckSquare,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, getFileUrl } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Modal } from '../components/common/Modal';
@@ -324,7 +324,7 @@ export const ComplaintDetailsPage: React.FC = () => {
               Attached Evidence Photo
             </h3>
             <img
-              src={complaint.evidenceImage}
+              src={getFileUrl(complaint.evidenceImage)}
               alt="Complaint evidence"
               className="max-h-80 rounded-xl border border-slate-200 object-cover shadow-xs"
             />

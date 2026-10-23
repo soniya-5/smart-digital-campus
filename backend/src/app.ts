@@ -28,21 +28,31 @@ app.use(
 );
 
 // CORS configuration
+const rawClientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/+$/, '') : null;
 const allowedOrigins = [
-  process.env.CLIENT_URL || 'http://localhost:5173',
+  rawClientUrl,
+  'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
-];
+].filter(Boolean) as string[];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, or same-origin)
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive for local dev demo
+      if (!origin) return callback(null, true);
+
+      const cleanOrigin = origin.replace(/\/+$/, '');
+      if (allowedOrigins.includes(cleanOrigin) || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
       }
+
+      // Allow any Vercel deployment of this frontend in production
+      if (cleanOrigin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+
+      return callback(null, true);
     },
     credentials: true,
   })

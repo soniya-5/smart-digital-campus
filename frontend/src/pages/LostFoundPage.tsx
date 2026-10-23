@@ -9,7 +9,7 @@ import {
   HelpCircle,
   Image,
 } from 'lucide-react';
-import { api } from '../api/client';
+import { api, getFileUrl } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Modal } from '../components/common/Modal';
 import { LostAndFoundItem } from '../types';
@@ -178,7 +178,7 @@ export const LostFoundPage: React.FC = () => {
                 <div>
                   {item.image ? (
                     <img
-                      src={item.image}
+                      src={getFileUrl(item.image)}
                       alt={item.itemName}
                       className="w-full h-40 object-cover border-b border-slate-100"
                     />
