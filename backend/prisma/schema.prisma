@@ -1,0 +1,380 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("STUDENT") // STUDENT, STAFF, ADMIN
+  studentId    String?   @unique
+  phone        String?
+  departmentId String?
+  roomNo       String?
+  points       Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  // Relations
+  reportedComplaints     Complaint[]             @relation("ComplaintReporter")
+  assignedComplaints     Complaint[]             @relation("ComplaintStaff")
+  statusHistoryChanges   ComplaintStatusHistory[]
+  comments               ComplaintComment[]
+  feedbacks              ComplaintFeedback[]
+  verifications          CommunityVerification[]
+  rewardTransactions     ImprovementPoint[]
+  announcements          Announcement[]
+  marketplaceListings    MarketplaceListing[]
+  createdStudyGroups     StudyGroup[]            @relation("StudyGroupCreator")
+  groupMemberships       StudyGroupMember[]
+  facilityRatings        FacilityRating[]
+  lostFoundReports       LostAndFoundItem[]
+  timetableEntries       TimetableEntry[]
+  eventRegistrations     EventRegistration[]
+  attendanceRecords      AttendanceRecord[]
+  attendanceSessions     AttendanceSession[]
+  sosAlerts              SOSAlert[]              @relation("SOSReporter")
+  acknowledgedSOSAlerts  SOSAlert[]              @relation("SOSAcknowledger")
+  auditLogs              AuditLog[]
+}
+
+model Department {
+  id           String      @id @default(uuid())
+  name         String      @unique
+  code         String      @unique
+  contactEmail String?
+  contactPhone String?
+  description  String?
+  users        User[]
+  complaints   Complaint[]
+}
+
+model Complaint {
+  id                   String                  @id // e.g. CMP-2026-0001
+  title                String
+  description          String
+  category             String // Electrical, Plumbing, IT, etc.
+  location             String? // Campus location or floor (optional)
+  roomNumber           String?
+  priority             String                  @default("Medium") // Low, Medium, High, Critical
+  status               String                  @default("Submitted") // Submitted, Under Review, Assigned, In Progress, Resolved, Rejected, Reopened
+  isHazardous          Boolean                 @default(false)
+  affectsClassroom     Boolean                 @default(false)
+  isAnonymous          Boolean                 @default(false)
+  evidenceImage        String?
+  resolutionNotes      String?
+  reporterId           String
+  assignedDepartmentId String?
+  assignedStaffId      String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  resolvedAt           DateTime?
+
+  reporter             User                    @relation("ComplaintReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  assignedDepartment   Department?             @relation(fields: [assignedDepartmentId], references: [id], onDelete: SetNull)
+  assignedStaff        User?                   @relation("ComplaintStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
+
+  statusHistory        ComplaintStatusHistory[]
+  comments             ComplaintComment[]
+  feedback             ComplaintFeedback?
+  verifications        CommunityVerification[]
+}
+
+model ComplaintStatusHistory {
+  id          String    @id @default(uuid())
+  complaintId String
+  oldStatus   String?
+  newStatus   String
+  changedById String
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  changedBy   User      @relation(fields: [changedById], references: [id], onDelete: Cascade)
+}
+
+model ComplaintComment {
+  id          String    @id @default(uuid())
+  complaintId String
+  userId      String
+  message     String
+  isStaffNote Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ComplaintFeedback {
+  id          String    @id @default(uuid())
+  complaintId String    @unique
+  studentId   String
+  rating      Int       // 1 to 5
+  comments    String?
+  submittedAt DateTime  @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model CommunityVerification {
+  id          String    @id @default(uuid())
+  complaintId String
+  userId      String
+  stillExists Boolean   @default(true)
+  notes       String?
+  verifiedAt  DateTime  @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([complaintId, userId])
+}
+
+model ImprovementPoint {
+  id          String    @id @default(uuid())
+  userId      String
+  points      Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // COMPLAINT_UPDATE, ASSIGNMENT, ANNOUNCEMENT, SOS, GENERAL
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Announcement {
+  id         String   @id @default(uuid())
+  title      String
+  content    String
+  category   String   @default("General") // Academic, Maintenance, Event, Emergency
+  authorId   String
+  isPinned   Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model MarketplaceListing {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  category      String   // Books, Electronics, Furniture, Stationery, Misc
+  price         Float
+  condition     String   // Brand New, Like New, Good, Fair
+  contactMethod String   // Email, Phone, Campus Messaging
+  status        String   @default("AVAILABLE") // AVAILABLE, SOLD, CLOSED
+  sellerId      String
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  seller        User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+}
+
+model StudyGroup {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  subject     String
+  course      String
+  meetingMode String   @default("Hybrid") // In-Person, Online, Hybrid
+  schedule    String
+  capacity    Int      @default(6)
+  creatorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator     User               @relation("StudyGroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members     StudyGroupMember[]
+}
+
+model StudyGroupMember {
+  id       String     @id @default(uuid())
+  groupId  String
+  userId   String
+  joinedAt DateTime   @default(now())
+
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model FacilityRating {
+  id           String   @id @default(uuid())
+  facilityName String   // Library, Sports Arena, Cafeteria, Computer Center
+  category     String
+  rating       Int      // 1 to 5
+  comments     String?
+  userId       String
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LostAndFoundItem {
+  id          String   @id @default(uuid())
+  type        String   // LOST, FOUND
+  itemName    String
+  description String
+  category    String   // Electronics, Cards/ID, Books, Accessories, Other
+  location    String
+  dateReported DateTime @default(now())
+  status      String   @default("OPEN") // OPEN, MATCHED, RETURNED, CLOSED
+  reporterId  String
+  image       String?
+  contactInfo String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reporter    User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+model CanteenMenuItem {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // Breakfast, Lunch, Snacks, Beverages, Specials
+  price       Float
+  isVeg       Boolean  @default(true)
+  isAvailable Boolean  @default(true)
+  description String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TimetableEntry {
+  id                 String              @id @default(uuid())
+  userId             String?
+  subject            String
+  code               String?             // e.g. "DS", "OS", "OOPCGL", "DELD", "OE", "ED", "CEP", "UHV"
+  dayOfWeek          String              // Monday, Tuesday, Wednesday, Thursday, Friday, Saturday
+  startTime          String              // HH:mm format, e.g. "09:15"
+  endTime            String              // HH:mm format, e.g. "10:15"
+  location           String              // Room 005, 210B, 211B, 210A, 201, 202
+  facultyName        String?             // ARD, JCJ, MAP, SSP, DDP, SAP, JDJ, APY, KSP, SVS
+  batch              String?             @default("ALL") // "ALL", "A", "B", "C"
+  type               String?             @default("LECTURE") // "LECTURE", "PRACTICAL", "TUTORIAL", "ACTIVITY"
+  createdAt          DateTime            @default(now())
+
+  user               User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceSessions AttendanceSession[]
+}
+
+model AttendanceSession {
+  id               String         @id @default(uuid())
+  studentId        String
+  timetableEntryId String
+  date             String         // YYYY-MM-DD
+  status           String         // ATTENDED, NOT_ATTENDED
+  markedAt         DateTime       @default(now())
+
+  student          User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  timetableEntry   TimetableEntry @relation(fields: [timetableEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, timetableEntryId, date])
+}
+
+model CalendarEvent {
+  id            String              @id @default(uuid())
+  title         String
+  description   String
+  eventType     String              // ACADEMIC, EXAM, HOLIDAY, CULTURAL, SPORTS
+  startDate     DateTime
+  endDate       DateTime
+  location      String?
+  organizer     String?
+  isOfficial    Boolean             @default(true)
+  capacity      Int?
+  createdAt     DateTime            @default(now())
+
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id           String        @id @default(uuid())
+  eventId      String
+  userId       String
+  registeredAt DateTime      @default(now())
+
+  event        CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model ExaminationRecord {
+  id          String   @id @default(uuid())
+  courseCode  String
+  courseName  String
+  examDate    DateTime
+  startTime   String   // e.g. "10:00 AM"
+  endTime     String   // e.g. "01:00 PM"
+  venue       String
+  department  String
+  seatNumber  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+model AttendanceRecord {
+  id              String   @id @default(uuid())
+  studentId       String
+  subject         String
+  totalClasses    Int      @default(0)
+  attendedClasses Int      @default(0)
+  lastUpdated     DateTime @default(now())
+  notes           String?
+
+  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model SOSAlert {
+  id               String    @id @default(uuid())
+  reporterId       String
+  alertType        String    // Medical, Security, Fire/Hazard, Infrastructure Crisis
+  location         String
+  details          String?
+  status           String    @default("ACTIVE") // ACTIVE, ACKNOWLEDGED, RESOLVED
+  acknowledgedById String?
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+
+  reporter         User      @relation("SOSReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  acknowledgedBy   User?     @relation("SOSAcknowledger", fields: [acknowledgedById], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}

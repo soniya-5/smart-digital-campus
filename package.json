@@ -1,0 +1,24 @@
+{
+  "name": "smart-digital-campus-system",
+  "version": "1.0.0",
+  "description": "Smart Digital Campus Infrastructure Issue Reporting and Resolution System",
+  "scripts": {
+    "dev": "npm run dev --prefix backend & npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "seed": "npm run seed --prefix backend",
+    "create-admin": "npm run create-admin --prefix backend",
+    "test": "npm run test --prefix backend"
+  },
+  "keywords": [
+    "campus",
+    "infrastructure",
+    "complaint-management",
+    "react",
+    "express",
+    "prisma"
+  ],
+  "author": "Smart Campus Developer",
+  "license": "ISC"
+}

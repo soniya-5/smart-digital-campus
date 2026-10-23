@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Production build outputs
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# SQLite Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Uploaded media and attachments
+backend/uploads/
